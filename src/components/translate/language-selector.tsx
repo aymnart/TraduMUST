@@ -2,6 +2,7 @@
 
 import { ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -11,14 +12,9 @@ interface LanguageSelectorProps {
   onSwap: () => void;
 }
 
-const languageTitles: Record<string, string> = {
-  en: "English",
-  ar: "Arabic",
-};
-
 const languageLabels: Record<string, { label: string; flag: string }> = {
-  en: { label: "English", flag: "US" },
-  ar: { label: "Arabic", flag: "SA" },
+  en: { label: "English", flag: "🇺🇸" },
+  ar: { label: "Arabic", flag: "🇸🇦" },
 };
 
 export function LanguageSelector({ sourceLang, targetLang, onSwap }: LanguageSelectorProps) {
@@ -26,55 +22,60 @@ export function LanguageSelector({ sourceLang, targetLang, onSwap }: LanguageSel
   const target = languageLabels[targetLang];
 
   return (
-    <div className="flex items-center justify-center gap-4">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`source-${sourceLang}`}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{ duration: 0.2 }}
-        >
-          <Badge
-            variant="secondary"
-            className="px-4 py-2 text-sm font-medium"
-          >
-            {source.flag} · {source.label}
-          </Badge>
-        </motion.div>
-      </AnimatePresence>
+    <Card className="w-full max-w-2xl mx-auto overflow-hidden border-border/50 shadow-md transition-shadow hover:shadow-lg bg-card/50 backdrop-blur-sm">
+      <CardContent className="p-0">
+        <div className="relative flex min-h-[5rem] items-center justify-between px-6">
+          {/* Source Language */}
+          <div className="flex-1">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Translating from</span>
+              <AnimatePresence mode="popLayout">
+                <motion.div
+                  key={sourceLang}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="flex items-center gap-2"
+                >
+                  <span className="text-xl bg-background rounded-full p-1 shadow-sm border border-border/50">{source.flag}</span>
+                  <span className="text-lg font-semibold text-foreground">{source.label}</span>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
 
-      <Button
-        variant="outline"
-        size="icon"
-        className="h-10 w-10 rounded-full cursor-pointer transition-all duration-200 hover:scale-105"
-        onClick={onSwap}
-        aria-label="Swap languages"
-      >
-        <motion.div
-          whileTap={{ rotate: 180 }}
-          transition={{ duration: 0.3 }}
-        >
-          <ArrowRightLeft className="h-4 w-4" />
-        </motion.div>
-      </Button>
+          {/* Swap Button */}
+          <div className="flex items-center justify-center px-4 z-10">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onSwap}
+              className="h-12 w-12 rounded-full border-border/50 bg-background shadow-sm hover:shadow-md hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all cursor-pointer group"
+            >
+              <ArrowRightLeft className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+            </Button>
+          </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`target-${targetLang}`}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2 }}
-        >
-          <Badge
-            variant="secondary"
-            className="px-4 py-2 text-sm font-medium"
-          >
-            {target.flag} · {target.label}
-          </Badge>
-        </motion.div>
-      </AnimatePresence>
-    </div>
+          {/* Target Language */}
+          <div className="flex-1 text-right items-end justify-end flex flex-col">
+            <div className="flex flex-col gap-1 items-end">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Translating to</span>
+              <AnimatePresence mode="popLayout">
+                <motion.div
+                  key={targetLang}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="flex items-center gap-2 flex-row-reverse"
+                >
+                  <span className="text-xl bg-background rounded-full p-1 shadow-sm border border-border/50">{target.flag}</span>
+                  <span className="text-lg font-bold text-primary">{target.label}</span>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

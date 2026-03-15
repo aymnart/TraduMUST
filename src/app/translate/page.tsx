@@ -113,10 +113,11 @@ export default function TranslatePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Card className="border-border shadow-sm">
-              <CardContent className="flex flex-col items-center gap-8 p-10">
+            <Card className="border-border/60 shadow-lg bg-card/80 backdrop-blur-md overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/40 via-primary to-primary/40 opacity-50" />
+              <CardContent className="flex flex-col items-center gap-8 p-12">
                 {/* Visualizer / Status Indicator */}
-                <div className="relative flex h-32 w-32 items-center justify-center">
+                <div className="relative flex h-36 w-36 items-center justify-center">
                   <AnimatePresence mode="popLayout">
                     {isConnected ? (
                       <motion.div
@@ -128,17 +129,30 @@ export default function TranslatePage() {
                       >
                         <motion.div
                           animate={{
-                            scale: conversation.isSpeaking ? [1, 1.2, 1] : 1,
-                            opacity: conversation.isSpeaking ? [0.5, 0.8, 0.5] : 0.2,
+                            scale: conversation.isSpeaking ? [1, 1.25, 1] : 1,
+                            opacity: conversation.isSpeaking ? [0.6, 0.9, 0.6] : 0.3,
                           }}
                           transition={{
-                            duration: 1,
+                            duration: 1.2,
                             repeat: Infinity,
                             ease: "easeInOut",
                           }}
-                          className="absolute h-32 w-32 rounded-full bg-primary/20"
+                          className="absolute h-36 w-36 rounded-full bg-primary/20"
                         />
-                        <div className="z-10 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm">
+                        <motion.div
+                          animate={{
+                            scale: conversation.isSpeaking ? [1, 1.1, 1] : 1,
+                            opacity: conversation.isSpeaking ? [0.8, 1, 0.8] : 0.4,
+                          }}
+                          transition={{
+                            duration: 1.2,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: 0.1,
+                          }}
+                          className="absolute h-28 w-28 rounded-full bg-primary/30"
+                        />
+                        <div className="z-10 flex h-20 w-20 items-center justify-center rounded-full bg-primary/20 border-2 border-primary/40 backdrop-blur-sm shadow-[0_0_30px_rgba(var(--primary),0.3)]">
                           <Activity className="h-8 w-8 text-primary" />
                         </div>
                       </motion.div>
@@ -148,37 +162,37 @@ export default function TranslatePage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50 border border-border"
+                        className="flex h-24 w-24 items-center justify-center rounded-full bg-secondary border-2 border-border/80 shadow-inner group transition-all duration-500"
                       >
-                        <Mic className="h-8 w-8 text-muted-foreground" />
+                        <Mic className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
 
-                <div className="text-center space-y-2 h-10">
-                  <h3 className="text-lg font-medium">
+                <div className="text-center space-y-3 h-14">
+                  <h3 className="text-xl font-semibold text-foreground tracking-tight">
                     {isConnecting
-                      ? "Connecting..."
+                      ? "Connecting to server..."
                       : isConnected
                         ? conversation.isSpeaking
-                          ? "Agent is translating..."
-                          : "Listening to you..."
+                          ? "Translating for you..."
+                          : "Listening..."
                         : "Ready to translate"}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-medium text-muted-foreground">
                     {isConnected
-                      ? "Speak normally. The agent will respond instantly."
-                      : "Click below to start a real-time voice session."}
+                      ? "Speak normally. The translation is instant."
+                      : "Tap below to start a friendly voice session."}
                   </p>
                 </div>
 
                 {/* Main Action Button */}
-                <div className="flex gap-4">
+                <div className="flex gap-4 pt-4">
                   {!isConnected ? (
                     <Button
                       size="lg"
-                      className="cursor-pointer gap-2 px-8 h-12 rounded-full"
+                      className="cursor-pointer gap-2 px-10 h-14 rounded-full text-base font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
                       onClick={handleStartConversation}
                       disabled={isConnecting}
                     >
@@ -189,11 +203,11 @@ export default function TranslatePage() {
                     <Button
                       size="lg"
                       variant="destructive"
-                      className="cursor-pointer gap-2 px-8 h-12 rounded-full"
+                      className="cursor-pointer gap-2 px-10 h-14 rounded-full text-base font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
                       onClick={handleStopConversation}
                     >
                       <Square className="h-5 w-5 fill-current" />
-                      Stop
+                      End Session
                     </Button>
                   )}
                 </div>
