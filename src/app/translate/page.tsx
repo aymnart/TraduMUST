@@ -3,109 +3,67 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { useConversation } from "@elevenlabs/react";
 import {
   Languages,
-  Settings,
   ArrowLeft,
   AlertCircle,
-  CheckCircle2,
-  Key,
+  Mic,
+  Square,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeSwitcher } from "@/components/shared/theme-switcher";
 import { LanguageSelector } from "@/components/translate/language-selector";
-import { VoiceRecorderButton } from "@/components/translate/voice-recorder-button";
-import { WaveformVisualizer } from "@/components/translate/waveform-visualizer";
-import { AudioPlayer } from "@/components/translate/audio-player";
-import { useAudioRecorder } from "@/hooks/use-audio-recorder";
-import { dubAudio } from "@/lib/elevenlabs";
-
-type TranslationStatus =
-  | "idle"
-  | "recording"
-  | "processing"
-  | "success"
-  | "error";
 
 export default function TranslatePage() {
   const [sourceLang, setSourceLang] = useState("en");
   const [targetLang, setTargetLang] = useState("ar");
-  const [status, setStatus] = useState<TranslationStatus>("idle");
-  const [statusMessage, setStatusMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [dubbedAudioUrl, setDubbedAudioUrl] = useState<string | null>(null);
 
-  const {
-    isRecording,
-    audioBlob,
-    audioUrl: recordedAudioUrl,
-    analyserData,
-    startRecording,
-    stopRecording,
-    resetRecording,
-    error: recorderError,
-  } = useAudioRecorder();
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log("Connected to ElevenLabs Agent");
+    },
+    onDisconnect: () => {
+      console.log("Disconnected from ElevenLabs Agent");
+    },
+    onMessage: (message) => {
+      console.log("Message received:", message);
+    },
+    onError: (error) => {
+      console.error("Conversation error:", error);
+    },
+  });
 
   const swapLanguages = useCallback(() => {
     setSourceLang((prev) => (prev === "en" ? "ar" : "en"));
     setTargetLang((prev) => (prev === "en" ? "ar" : "en"));
   }, []);
 
-  const handleStartRecording = useCallback(async () => {
-    if (dubbedAudioUrl) {
-      URL.revokeObjectURL(dubbedAudioUrl);
-      setDubbedAudioUrl(null);
-    }
-    resetRecording();
-    setStatus("recording");
-    setErrorMessage("");
-    await startRecording();
-  }, [dubbedAudioUrl, resetRecording, startRecording]);
-
-  const handleStopRecording = useCallback(async () => {
-    stopRecording();
-
-    // Wait a tick for the blob to be set
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  }, [stopRecording]);
-
-  const handleTranslate = useCallback(async () => {
-    if (!audioBlob) return;
-
-    setStatus("processing");
-    setErrorMessage("");
-
+  const handleStartConversation = useCallback(async () => {
     try {
-      const dubbedBlob = await dubAudio(
-        audioBlob,
-        sourceLang,
-        targetLang,
-        (msg) => setStatusMessage(msg)
-      );
+      await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      const url = URL.createObjectURL(dubbedBlob);
-      setDubbedAudioUrl(url);
-      setStatus("success");
-      setStatusMessage("Translation complete!");
-    } catch (err) {
-      setStatus("error");
-      setErrorMessage(
-        err instanceof Error ? err.message : "Translation failed. Please try again."
-      );
+      await conversation.startSession({
+        agentId: process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "",
+        connectionType: "webrtc",
+      });
+    } catch (error) {
+      console.error("Failed to start conversation:", error);
     }
-  }, [audioBlob, sourceLang, targetLang]);
+  }, [conversation]);
 
-  const handleReset = useCallback(() => {
-    if (dubbedAudioUrl) {
-      URL.revokeObjectURL(dubbedAudioUrl);
-      setDubbedAudioUrl(null);
+  const handleStopConversation = useCallback(async () => {
+    try {
+      await conversation.endSession();
+    } catch (error) {
+      console.error("Failed to stop conversation:", error);
     }
-    resetRecording();
-    setStatus("idle");
-    setStatusMessage("");
-    setErrorMessage("");
-  }, [dubbedAudioUrl, resetRecording]);
+  }, [conversation]);
+
+  const isConnected = conversation.status === "connected";
+  const isConnecting = conversation.status === "connecting";
 
   return (
     <div className="flex min-h-[100dvh] flex-col">
@@ -154,127 +112,95 @@ export default function TranslatePage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="border-border shadow-sm">
-                <CardContent className="flex flex-col items-center gap-6 p-8">
-                {/* Waveform Visualizer */}
-                <WaveformVisualizer
-                  analyserData={analyserData}
-                  isRecording={isRecording}
-                />
+          >
+            <Card className="border-border shadow-sm">
+              <CardContent className="flex flex-col items-center gap-8 p-10">
+                {/* Visualizer / Status Indicator */}
+                <div className="relative flex h-32 w-32 items-center justify-center">
+                  <AnimatePresence mode="popLayout">
+                    {isConnected ? (
+                      <motion.div
+                        key="active-orb"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="relative flex items-center justify-center"
+                      >
+                        <motion.div
+                          animate={{
+                            scale: conversation.isSpeaking ? [1, 1.2, 1] : 1,
+                            opacity: conversation.isSpeaking ? [0.5, 0.8, 0.5] : 0.2,
+                          }}
+                          transition={{
+                            duration: 1,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }}
+                          className="absolute h-32 w-32 rounded-full bg-primary/20"
+                        />
+                        <div className="z-10 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm">
+                          <Activity className="h-8 w-8 text-primary" />
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="idle-orb"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50 border border-border"
+                      >
+                        <Mic className="h-8 w-8 text-muted-foreground" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-                {/* Record Button */}
-                <VoiceRecorderButton
-                  isRecording={isRecording}
-                  isProcessing={status === "processing"}
-                  onStart={handleStartRecording}
-                  onStop={handleStopRecording}
-                />
+                <div className="text-center space-y-2 h-10">
+                  <h3 className="text-lg font-medium">
+                    {isConnecting
+                      ? "Connecting..."
+                      : isConnected
+                        ? conversation.isSpeaking
+                          ? "Agent is translating..."
+                          : "Listening to you..."
+                        : "Ready to translate"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isConnected
+                      ? "Speak normally. The agent will respond instantly."
+                      : "Click below to start a real-time voice session."}
+                  </p>
+                </div>
 
-                {/* Recorder Error */}
-                {recorderError && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    {recorderError}
-                  </div>
-                )}
-
-                {/* Recorded Audio Player */}
-                <AnimatePresence>
-                  {recordedAudioUrl && !isRecording && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="w-full"
-                    >
-                      <AudioPlayer
-                        audioUrl={recordedAudioUrl}
-                        label="Your Recording"
-                        onReset={handleReset}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Translate Button */}
-                {audioBlob && !isRecording && status !== "processing" && status !== "success" && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                {/* Main Action Button */}
+                <div className="flex gap-4">
+                  {!isConnected ? (
                     <Button
                       size="lg"
-                      className="gap-2 cursor-pointer px-8"
-                      onClick={handleTranslate}
+                      className="cursor-pointer gap-2 px-8 h-12 rounded-full"
+                      onClick={handleStartConversation}
+                      disabled={isConnecting}
                     >
-                      <Languages className="h-4 w-4" />
-                      Translate to {targetLang === "ar" ? "Tunisian Arabic" : "English"}
+                      <Mic className="h-5 w-5" />
+                      {isConnecting ? "Connecting..." : "Start Conversation"}
                     </Button>
-                  </motion.div>
-                )}
+                  ) : (
+                    <Button
+                      size="lg"
+                      variant="destructive"
+                      className="cursor-pointer gap-2 px-8 h-12 rounded-full"
+                      onClick={handleStopConversation}
+                    >
+                      <Square className="h-5 w-5 fill-current" />
+                      Stop
+                    </Button>
+                  )}
+                </div>
 
-                {/* Status Message */}
-                {status === "processing" && statusMessage && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-sm text-muted-foreground"
-                  >
-                    {statusMessage}
-                  </motion.p>
-                )}
-
-                {/* Error Message */}
-                {errorMessage && status === "error" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 text-sm text-destructive"
-                  >
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    {errorMessage}
-                  </motion.div>
-                )}
               </CardContent>
             </Card>
           </motion.div>
-
-          {/* Dubbed Audio Output */}
-          <AnimatePresence>
-            {dubbedAudioUrl && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              >
-                <Card className="border-border shadow-sm">
-                  <CardContent className="space-y-4 p-6">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
-                      <h3 className="font-semibold">Translation Complete</h3>
-                    </div>
-                    <AudioPlayer
-                      audioUrl={dubbedAudioUrl}
-                      label={`Translated Audio (${targetLang === "ar" ? "Tunisian Arabic" : "English"})`}
-                      showDownload
-                    />
-                    <div className="flex justify-center pt-2">
-                      <Button
-                        variant="outline"
-                        className="cursor-pointer"
-                        onClick={handleReset}
-                      >
-                        Translate Another
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </main>
     </div>

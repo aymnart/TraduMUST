@@ -11,9 +11,14 @@ interface LanguageSelectorProps {
   onSwap: () => void;
 }
 
-const languageLabels: Record<string, { name: string; flag: string }> = {
-  en: { name: "English", flag: "EN" },
-  ar: { name: "Tunisian Arabic", flag: "TN" },
+const languageTitles: Record<string, string> = {
+  en: "English",
+  ar: "Arabic",
+};
+
+const languageLabels: Record<string, { label: string; flag: string }> = {
+  en: { label: "English", flag: "US" },
+  ar: { label: "Arabic", flag: "SA" },
 };
 
 export function LanguageSelector({ sourceLang, targetLang, onSwap }: LanguageSelectorProps) {
@@ -34,7 +39,7 @@ export function LanguageSelector({ sourceLang, targetLang, onSwap }: LanguageSel
             variant="secondary"
             className="px-4 py-2 text-sm font-medium"
           >
-            {source.flag} · {source.name}
+            {source.flag} · {source.label}
           </Badge>
         </motion.div>
       </AnimatePresence>
@@ -66,7 +71,7 @@ export function LanguageSelector({ sourceLang, targetLang, onSwap }: LanguageSel
             variant="secondary"
             className="px-4 py-2 text-sm font-medium"
           >
-            {target.flag} · {target.name}
+            {target.flag} · {target.label}
           </Badge>
         </motion.div>
       </AnimatePresence>
